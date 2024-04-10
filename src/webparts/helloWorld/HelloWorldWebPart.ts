@@ -14,8 +14,30 @@ import {
   SPHttpClient, 
   SPHttpClientResponse
 } from '@microsoft/sp-http'; 
+import {createApp, defineComponent, ref } from "vue";
 
+const SimpleVue = defineComponent({
+  name: 'SimpleVue',
+  setup() {
+    console.log("simple vue component setup")
+    const counter = ref(0);
+    function increment() {
+      console.log("running setup here")
+      counter.value++;
+    }
 
+    return { counter, increment };
+  },
+  data() {
+    return { counter: 0 }  
+  }, 
+  template: `
+    <div>
+      <p>Counter: {{ counter }}</p>
+      <button @click="increment">Increment</button>
+    </div>
+  `
+});
 // properties here 
 export interface IHelloWorldWebPartProps {
   description: string;
@@ -56,23 +78,27 @@ export default class HelloWorldWebPart extends BaseClientSideWebPart<IHelloWorld
         <p>${this.properties.test3}</p>
       </div>
       <div id="spListContainer" />
+      <h4> vue </h4> 
+<div id="vueCounter"/>
     </section>`;
-  
-    this._renderListAsync()
+    this._renderListAsync();
+    createApp(SimpleVue).mount("#vueCounter");
   }  
-  
+  // get list data and render list
   private _renderListAsync(): void {
     this._getListData().then((response) => {
       this._renderList(response.value); 
     })
   }
 
+  
+  // get list from sharepoint and return in JSON 
   private _getListData(): Promise<ISPLists> {
     return this.context.spHttpClient.get(this.context.pageContext.web.absoluteUrl + `/_api/web/lists/getByTitle('Settings')/items?$select=Id,Title`, SPHttpClient.configurations.v1).then((response: SPHttpClientResponse) => {
       return response.json()
     })
   }
-
+  // for each item in the list, wrap in a ul
   private _renderList(items: ISPList[]): void {
     let html: string = ''; 
     items.forEach((item: ISPList) => {
@@ -92,13 +118,13 @@ export default class HelloWorldWebPart extends BaseClientSideWebPart<IHelloWorld
       console.error('Could not find the #spListContainer element.');
     }
   }
-
+  // init method
   protected onInit(): Promise<void> {
     return this._getEnvironmentMessage().then(message => {
       this._environmentMessage = message;
     });
   }
-
+  // look at env and switch based on outlook / teams / office
   private _getEnvironmentMessage(): Promise<string> {
     if (!!this.context.sdks.microsoftTeams) { // running in Teams, office.com or Outlook
       return this.context.sdks.microsoftTeams.teamsJs.app.getContext()
@@ -125,7 +151,7 @@ export default class HelloWorldWebPart extends BaseClientSideWebPart<IHelloWorld
 
     return Promise.resolve(this.context.isServedFromLocalhost ? strings.AppLocalEnvironmentSharePoint : strings.AppSharePointEnvironment);
   }
-
+  // dark and light theme
   protected onThemeChanged(currentTheme: IReadonlyTheme | undefined): void {
     if (!currentTheme) {
       return;
@@ -143,11 +169,11 @@ export default class HelloWorldWebPart extends BaseClientSideWebPart<IHelloWorld
     }
 
   }
-
+  // get version
   protected get dataVersion(): Version {
     return Version.parse('1.0');
   }
-
+  // manage inputs (dropdown, radio, multiline)
   protected getPropertyPaneConfiguration(): IPropertyPaneConfiguration {
     return {
       pages: [
